@@ -7,8 +7,8 @@ import sys
 
 
 #CONFS
-room_name = 'gitterHQ/sandbox'
-# room_name = 'AtomicGameEngine/AtomicGameEngine'
+# room_name = 'gitterHQ/sandbox'
+room_name = 'AtomicGameEngine/AtomicGameEngine'
 moderators = ["CTrauma", "mattbenic", "darrylryan", "Alan-FGR"]
 allowed_bad_words = ["shit", "crap", "poop"]
 server_port = -1
@@ -122,6 +122,7 @@ def cooldown_infractions():
         infractors.pop(k, None)
 
 def process_message(usr, msg):
+    global last_message #this sucks... time to go OOP?
     last_message = msg
     if not process_bad_words(usr, msg):
         cooldown_infractions()
