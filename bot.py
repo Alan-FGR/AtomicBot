@@ -73,7 +73,8 @@ commands['where/how'] = where
 
 #WORKING VARS
 read_this_session = [0]
-
+last_message = ""
+infractors = {} # if user has too high infraction ratio, we gotta do something about it
 
 
 #FETCH ONLINE DATA
@@ -95,11 +96,7 @@ if server_port >= 0:
 
 
 
-
-
-
-last_message = ""
-infractors = {} # if user has too high infraction ratio, we gotta do something about it
+#FUNCTIONS
 
 def say(msg):
     if EMULATE:
@@ -125,6 +122,7 @@ def cooldown_infractions():
         infractors.pop(k, None)
 
 def process_message(usr, msg):
+    last_message = msg
     if not process_bad_words(usr, msg):
         cooldown_infractions()
         process_command(msg)
@@ -157,10 +155,13 @@ def process_command(msg):
 def get_stats():
     return """
     MESSAGES READ THIS SESSION: """+str(read_this_session[0])+"""
+    LAST MESSAGES READ: """+str(last_message)+"""
     INFRACTORS: """+str(infractors)+"""
     COMMANDS: """+str([x for x in commands])+"""
     WHAT I KNOW: """+str([x for x in what_matches]+[x for x in where_matches])+"""
     """
+
+
 
 
 # TESTING
@@ -168,16 +169,17 @@ if EMULATE:
     while True:
         try:
             message = input("> ")
-            last_message = message
             process_message("Alan-FRG", message)
         except Exception as e:
             print(str(e))
 
 
 
+
+
 #GITTER CLIENT
 print('initting client')
-gitter = GitterClient(open("token.txt").readline())
+gitter = GitterClient(open("token.txt").readline().rstrip())
 
 
 #join room if necessary (has to check otherwise shit happens)
@@ -211,7 +213,6 @@ for bytes in stream.iter_lines():
             message = response['text']
             sender = response['fromUser']['username']
             if sender != bot_name:
-                last_message = message
                 process_message(sender, message)
                 if read_this_session[0]%mark_interval == 0:
                     gitter.user.mark_as_read(room_name)
