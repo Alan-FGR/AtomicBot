@@ -3,15 +3,24 @@ from gitterpy.client import GitterClient
 from json import loads
 from random import randint
 import threading
-
+import sys
 
 
 #CONFS
 room_name = 'gitterHQ/sandbox'
 # room_name = 'AtomicGameEngine/AtomicGameEngine'
 moderators = ["CTrauma", "mattbenic", "darrylryan", "Alan-FGR"]
-allowed_bad_words = ["shit"]
+allowed_bad_words = ["shit", "crap", "poop"]
+server_port = -1
 EMULATE = False
+
+if len(sys.argv) > 1:
+    try:
+        server_port = sys.argv[1]
+    except:
+        print("""Usage: python bot.py server_port. '-1' disables server.
+         If server is disable data is dumped to file so you can use free hosting for stats :P""")
+        quit()
 
 
 
@@ -74,18 +83,14 @@ bad_words = [x for x in bad_words if x not in allowed_bad_words]
 
 
 #WEBSERVER
-from wsgiref.simple_server import make_server
-def application(environ, start_response):
-    start_response("200 OK", [("Content-type", "text/plain")])
-    return [str("""BOT ONLINE!
-    MESSAGES READ THIS SESSION: """+str(read_this_session[0])+"""
-    INFRACTORS: """+str(infractors)+"""
-    COMMANDS: """+str([x for x in commands])+"""
-    WHAT I KNOW: """+str([x for x in what_matches]+[x for x in where_matches])+"""
-    """).encode("utf-8")]
-print("starting server")
-server = make_server('localhost', 8080, application)
-threading.Thread(target=server.serve_forever).start()
+if server_port >= 0:
+    from wsgiref.simple_server import make_server
+    def application(environ, start_response):
+        start_response("200 OK", [("Content-type", "text/plain")])
+        return [str("""BOT ONLINE!"""+get_stats()).encode("utf-8")]
+    print("starting server")
+    server = make_server('localhost', server_port, application)
+    threading.Thread(target=server.serve_forever).start()
 
 
 
@@ -120,9 +125,11 @@ def cooldown_infractions():
         infractors.pop(k, None)
 
 def process_message(usr, msg):
-    if(process_bad_words(usr, msg)): return
-    cooldown_infractions()
-    process_command(msg)
+    if not process_bad_words(usr, msg):
+        cooldown_infractions()
+        process_command(msg)
+    if server_port < 0:
+        open('stats', 'w+').write(get_stats())
 
 def process_bad_words(usr, msg):
     for word in msg.split(" "):
@@ -146,6 +153,14 @@ def process_command(msg):
                 commands[available_command](args)
             except:
                 commands[available_command]()
+
+def get_stats():
+    return """
+    MESSAGES READ THIS SESSION: """+str(read_this_session[0])+"""
+    INFRACTORS: """+str(infractors)+"""
+    COMMANDS: """+str([x for x in commands])+"""
+    WHAT I KNOW: """+str([x for x in what_matches]+[x for x in where_matches])+"""
+    """
 
 
 # TESTING
@@ -202,3 +217,4 @@ for bytes in stream.iter_lines():
                     gitter.user.mark_as_read(room_name)
         except Exception as e:
             print(str(e))
+
